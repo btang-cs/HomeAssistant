@@ -1,1 +1,61 @@
-/* Keep per-page style lightweight; most styles are in app.wxss */
+.chip-scroll {
+  margin-top: 14rpx;
+  white-space: nowrap;
+}
+
+.chip-row {
+  display: inline-flex;
+  gap: 12rpx;
+  padding-right: 8rpx;
+}
+
+.chip {
+  flex-shrink: 0;
+  border-radius: 999rpx;
+  padding: 10rpx 18rpx;
+  font-size: 22rpx;
+  color: #334155;
+  border: 1rpx solid #cbd5e1;
+  background: #f8fafc;
+}
+
+.chip-active {
+  color: #ffffff;
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+}
+
+.switch-row {
+  margin-top: 16rpx;
+  display: flex;
+  gap: 16rpx;
+}
+
+.switch-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 14rpx;
+  padding: 12rpx 14rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e2e8f0;
+}
+
+.filter-actions {
+  margin-top: 14rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.item-actions {
+  margin-top: 14rpx;
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.item-actions button {
+  flex: 1;
+  min-width: 120rpx;
+}

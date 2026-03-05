@@ -29,9 +29,9 @@ patterns=(
   'ghp_[A-Za-z0-9]{30,}'
   'xox[baprs]-[A-Za-z0-9-]+'
   'sk-(live|test)-[A-Za-z0-9]+'
-  'api[_-]?key["[:space:]]*[:=]["[:space:]]*[A-Za-z0-9_\-]{12,}'
-  'secret["[:space:]]*[:=]["[:space:]]*[A-Za-z0-9_\-]{12,}'
-  'token["[:space:]]*[:=]["[:space:]]*[A-Za-z0-9_\-]{12,}'
+  "api[_-]?key[\"[:space:]]*[:=][\"[:space:]]*['\"][A-Za-z0-9_\\-]{12,}['\"]"
+  "secret[\"[:space:]]*[:=][\"[:space:]]*['\"][A-Za-z0-9_\\-]{12,}['\"]"
+  "token[\"[:space:]]*[:=][\"[:space:]]*['\"][A-Za-z0-9_\\-]{12,}['\"]"
 )
 
 failed=0

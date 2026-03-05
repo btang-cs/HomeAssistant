@@ -70,17 +70,42 @@ export function listMockDevices() {
   return Array.from(mockDevices.values()).map((item) => clone(item));
 }
 
-export function toggleMockDevice(entityId) {
+export function getMockDevice(entityId) {
+  const device = mockDevices.get(entityId);
+  return device ? clone(device) : null;
+}
+
+export function setMockDeviceState(entityId, action) {
   const device = mockDevices.get(entityId);
   if (!device) {
     return null;
   }
 
-  const isOn = device.state === 'on';
-  device.state = isOn ? 'off' : 'on';
-  device.lastChanged = new Date().toISOString();
-  device.lastUpdated = device.lastChanged;
+  const current = String(device.state || '').toLowerCase();
+  let nextState = current;
+
+  if (action === 'turn_on') {
+    nextState = 'on';
+  } else if (action === 'turn_off') {
+    nextState = 'off';
+  } else if (action === 'toggle') {
+    nextState = current === 'on' ? 'off' : 'on';
+  } else {
+    return clone(device);
+  }
+
+  const now = new Date().toISOString();
+  if (nextState !== current) {
+    device.state = nextState;
+    device.lastChanged = now;
+  }
+  device.lastUpdated = now;
+
   return clone(device);
+}
+
+export function toggleMockDevice(entityId) {
+  return setMockDeviceState(entityId, 'toggle');
 }
 
 export function listMockScenes() {

@@ -7,6 +7,12 @@ This repository now contains a runnable MVP skeleton:
 - `backend`: Node.js API gateway for WeChat Mini Program, with Home Assistant proxy + mock mode.
 - `miniapp`: Native WeChat Mini Program project (import into WeChat DevTools).
 
+## Feature Highlights
+
+- Devices page: keyword search, domain tabs, online-only filter, favorites, and quick actions (`turn_on` / `turn_off` / `toggle`).
+- Scenes page: keyword search and local recent-activation history.
+- Backend device APIs: list filtering, summary stats, single-device detail, and explicit state actions.
+
 ## 1) Start backend
 
 ```bash
@@ -51,9 +57,11 @@ SESSION_TTL_SECONDS=86400
 
 - `POST /auth/wx-login`: create app session token from `wx.login` code
 - `GET /api/health`
-- `GET /api/devices`
+- `GET /api/devices`: supports optional query params `q`, `domain`, `available`, `controllable`
+- `GET /api/devices/:entityId`
+- `POST /api/devices/:entityId/state` with body `{ \"action\": \"turn_on|turn_off|toggle\" }`
 - `POST /api/devices/:entityId/toggle`
-- `GET /api/scenes`
+- `GET /api/scenes`: supports optional query param `q`
 - `POST /api/scenes/:entityId/activate`
 
 All `/api/*` routes require `Authorization: Bearer <sessionToken>`.

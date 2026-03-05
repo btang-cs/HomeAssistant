@@ -7,6 +7,12 @@
 - `backend`：Node.js API 网关，支持 Home Assistant 代理模式和 Mock 模式
 - `miniapp`：原生微信小程序工程（可直接导入微信开发者工具）
 
+## 功能亮点
+
+- 设备页：支持关键词搜索、域分类筛选、仅在线过滤、设备收藏、快捷开关控制。
+- 场景页：支持关键词搜索和最近执行时间记录（本地持久化）。
+- 后端接口：支持设备列表过滤、设备统计、设备详情、显式状态控制（开/关/切换）。
+
 ## 1）启动后端
 
 ```bash
@@ -51,9 +57,11 @@ SESSION_TTL_SECONDS=86400
 
 - `POST /auth/wx-login`：使用 `wx.login` 的 `code` 换取应用会话 Token
 - `GET /api/health`
-- `GET /api/devices`
+- `GET /api/devices`：支持可选查询参数 `q`、`domain`、`available`、`controllable`
+- `GET /api/devices/:entityId`
+- `POST /api/devices/:entityId/state`：请求体 `{ \"action\": \"turn_on|turn_off|toggle\" }`
 - `POST /api/devices/:entityId/toggle`
-- `GET /api/scenes`
+- `GET /api/scenes`：支持可选查询参数 `q`
 - `POST /api/scenes/:entityId/activate`
 
 说明：所有 `/api/*` 接口都需要请求头 `Authorization: Bearer <sessionToken>`。

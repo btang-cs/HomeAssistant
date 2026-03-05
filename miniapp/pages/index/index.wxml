@@ -1,7 +1,7 @@
 <view class="container">
   <view class="hero">
     <view class="hero-title">家庭设备面板</view>
-    <view class="hero-desc">统一查看设备状态，支持常用设备一键切换。</view>
+    <view class="hero-desc">支持搜索、收藏和快捷控制。</view>
     <view class="stat-row">
       <view class="stat-pill">
         <text class="stat-label">设备总数</text>
@@ -12,19 +12,66 @@
         <text class="stat-value">{{onlineTotal}}</text>
       </view>
     </view>
+    <view class="stat-row">
+      <view class="stat-pill">
+        <text class="stat-label">可控设备</text>
+        <text class="stat-value">{{controllableTotal}}</text>
+      </view>
+      <view class="stat-pill">
+        <text class="stat-label">筛选结果</text>
+        <text class="stat-value">{{filteredTotal}}</text>
+      </view>
+    </view>
   </view>
 
   <view class="card">
     <view class="section-head">
-      <view class="section-title">设备列表</view>
+      <view class="section-title">设备筛选</view>
       <button class="secondary-btn mini-btn" size="mini" bindtap="loadDevices" loading="{{loading}}">
         刷新
       </button>
     </view>
 
+    <input
+      class="input-field"
+      type="text"
+      value="{{searchKeyword}}"
+      bindinput="onSearchInput"
+      placeholder="搜索设备名称 / 实体ID"
+    />
+
+    <scroll-view class="chip-scroll" scroll-x="true" show-scrollbar="false" enhanced="true">
+      <view class="chip-row">
+        <view
+          wx:for="{{domainTabs}}"
+          wx:key="key"
+          class="chip {{selectedDomain === item.key ? 'chip-active' : ''}}"
+          data-domain="{{item.key}}"
+          bindtap="onDomainTabTap"
+        >
+          {{item.label}} ({{item.count}})
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="switch-row">
+      <view class="switch-item">
+        <text class="subtle">仅看在线</text>
+        <switch color="#2563eb" checked="{{onlyOnline}}" bindchange="onOnlyOnlineChange" />
+      </view>
+      <view class="switch-item">
+        <text class="subtle">仅看收藏</text>
+        <switch color="#2563eb" checked="{{onlyFavorites}}" bindchange="onOnlyFavoritesChange" />
+      </view>
+    </view>
+
+    <view class="filter-actions">
+      <button class="secondary-btn mini-btn" size="mini" bindtap="onClearFilters">重置筛选</button>
+    </view>
+
     <view class="error-banner" wx:if="{{error}}">{{error}}</view>
     <view class="empty" wx:if="{{loading}}">正在加载设备，请稍候...</view>
-    <view class="empty" wx:if="{{!loading && isEmpty}}">暂无设备数据</view>
+    <view class="empty" wx:if="{{!loading && isEmpty}}">当前筛选条件下暂无设备</view>
 
     <view class="list-item" wx:for="{{devices}}" wx:key="entityId">
       <view class="item-top">
@@ -41,16 +88,47 @@
         </view>
 
         <button
-          wx:if="{{item.toggleable}}"
+          class="secondary-btn mini-btn"
+          size="mini"
+          data-entity-id="{{item.entityId}}"
+          bindtap="onToggleFavorite"
+        >
+          {{item.isFavorite ? '已收藏' : '收藏'}}
+        </button>
+      </view>
+
+      <view class="item-actions" wx:if="{{item.controllable}}">
+        <button
           class="primary-btn mini-btn"
           size="mini"
           data-entity-id="{{item.entityId}}"
-          bindtap="onToggleTap"
+          data-action="turn_on"
+          bindtap="onActionTap"
+        >
+          开启
+        </button>
+        <button
+          class="danger-btn mini-btn"
+          size="mini"
+          data-entity-id="{{item.entityId}}"
+          data-action="turn_off"
+          bindtap="onActionTap"
+        >
+          关闭
+        </button>
+        <button
+          class="secondary-btn mini-btn"
+          size="mini"
+          data-entity-id="{{item.entityId}}"
+          data-action="toggle"
+          bindtap="onActionTap"
         >
           切换
         </button>
+      </view>
 
-        <text wx:else class="subtle">仅支持查看</text>
+      <view class="item-actions" wx:else>
+        <text class="subtle">当前设备仅支持查看状态</text>
       </view>
     </view>
   </view>

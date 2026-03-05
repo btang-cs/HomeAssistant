@@ -8,9 +8,10 @@ import { config } from './lib/config.js';
 import { HomeAssistantClient } from './lib/haClient.js';
 import {
   activateMockScene,
+  getMockDevice,
   listMockDevices,
   listMockScenes,
-  toggleMockDevice
+  setMockDeviceState
 } from './lib/mockData.js';
 import SessionStore from './lib/sessionStore.js';
 
@@ -34,7 +35,8 @@ const SUPPORTED_DOMAINS = new Set([
   'input_boolean'
 ]);
 
-const TOGGLEABLE_DOMAINS = new Set(['light', 'switch', 'fan', 'input_boolean']);
+const ACTIONABLE_DOMAINS = new Set(['light', 'switch', 'fan', 'input_boolean']);
+const DEVICE_ACTIONS = new Set(['turn_on', 'turn_off', 'toggle']);
 
 app.use(cors());
 app.use(express.json());
@@ -89,84 +91,103 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.get('/api/devices', async (_req, res) => {
+app.get('/api/devices', async (req, res) => {
   try {
     if (config.mockMode) {
-      const items = listMockDevices();
-      res.json({ items, total: items.length, source: 'mock' });
+      const items = applyDeviceFilters(listMockDevices().map(withDeviceMetadata), req.query);
+      res.json({
+        items,
+        total: items.length,
+        source: 'mock',
+        summary: summarizeDevices(items)
+      });
       return;
     }
 
     const states = await haClient.getStates();
-    const items = states
-      .map(toDeviceDTO)
-      .filter(Boolean)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const items = applyDeviceFilters(
+      states
+        .map((state) => toDeviceDTO(state))
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      req.query
+    );
 
-    res.json({ items, total: items.length, source: 'home_assistant' });
+    res.json({
+      items,
+      total: items.length,
+      source: 'home_assistant',
+      summary: summarizeDevices(items)
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+app.get('/api/devices/:entityId', async (req, res) => {
+  const entityId = decodeEntityId(req.params.entityId);
+  if (!entityId) {
+    res.status(400).json({ message: 'Invalid entityId format.' });
+    return;
+  }
+
+  try {
+    if (config.mockMode) {
+      const item = withDeviceMetadata(getMockDevice(entityId));
+      if (!item) {
+        res.status(404).json({ message: 'Device not found in mock data.' });
+        return;
+      }
+
+      res.json({ item, source: 'mock' });
+      return;
+    }
+
+    const state = await haClient.getState(entityId);
+    const item = toDeviceDTO(state, { allowUnsupported: true });
+
+    res.json({ item, source: 'home_assistant' });
   } catch (error) {
     sendError(res, error);
   }
 });
 
 app.post('/api/devices/:entityId/toggle', async (req, res) => {
-  const entityId = decodeURIComponent(req.params.entityId || '');
-  const domain = entityId.split('.')[0];
-
-  if (!entityId.includes('.')) {
-    res.status(400).json({ message: 'Invalid entityId format.' });
-    return;
-  }
-
-  if (!TOGGLEABLE_DOMAINS.has(domain)) {
-    res.status(400).json({ message: `Domain ${domain} does not support toggle in MVP.` });
-    return;
-  }
-
-  try {
-    if (config.mockMode) {
-      const device = toggleMockDevice(entityId);
-      if (!device) {
-        res.status(404).json({ message: 'Device not found in mock data.' });
-        return;
-      }
-      res.json({ ok: true, entityId, device, source: 'mock' });
-      return;
-    }
-
-    await haClient.callService('homeassistant', 'toggle', { entity_id: entityId });
-
-    let device = null;
-    try {
-      const state = await haClient.getState(entityId);
-      device = toDeviceDTO(state);
-    } catch {
-      // Service call succeeded but latest state pull failed.
-    }
-
-    res.json({ ok: true, entityId, device, source: 'home_assistant' });
-  } catch (error) {
-    sendError(res, error);
-  }
+  await handleDeviceAction(req, res, 'toggle');
 });
 
-app.get('/api/scenes', async (_req, res) => {
+app.post('/api/devices/:entityId/state', async (req, res) => {
+  const action = String(req.body?.action || '').trim().toLowerCase();
+  if (!DEVICE_ACTIONS.has(action)) {
+    res.status(400).json({ message: 'Invalid action. Use turn_on, turn_off, or toggle.' });
+    return;
+  }
+
+  await handleDeviceAction(req, res, action);
+});
+
+app.get('/api/scenes', async (req, res) => {
+  const keyword = normalizeKeyword(req.query?.q);
+
   try {
     if (config.mockMode) {
-      const items = listMockScenes();
+      const items = applySceneKeywordFilter(listMockScenes(), keyword);
       res.json({ items, total: items.length, source: 'mock' });
       return;
     }
 
     const states = await haClient.getStates();
-    const items = states
-      .filter((state) => String(state.entity_id || '').startsWith('scene.'))
-      .map((state) => ({
-        entityId: state.entity_id,
-        name: state.attributes?.friendly_name || state.entity_id,
-        state: state.state
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const items = applySceneKeywordFilter(
+      states
+        .filter((state) => String(state.entity_id || '').startsWith('scene.'))
+        .map((state) => ({
+          entityId: state.entity_id,
+          name: state.attributes?.friendly_name || state.entity_id,
+          state: state.state
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      keyword
+    );
 
     res.json({ items, total: items.length, source: 'home_assistant' });
   } catch (error) {
@@ -175,9 +196,9 @@ app.get('/api/scenes', async (_req, res) => {
 });
 
 app.post('/api/scenes/:entityId/activate', async (req, res) => {
-  const entityId = decodeURIComponent(req.params.entityId || '');
+  const entityId = decodeEntityId(req.params.entityId);
 
-  if (!entityId.startsWith('scene.')) {
+  if (!entityId?.startsWith('scene.')) {
     res.status(400).json({ message: 'Only scene.* entityId can be activated.' });
     return;
   }
@@ -209,11 +230,181 @@ app.listen(config.port, config.host, () => {
   console.log(`[backend] listening on http://${config.host}:${config.port} (mode=${mode})`);
 });
 
-function toDeviceDTO(state) {
+async function handleDeviceAction(req, res, action) {
+  const entityId = decodeEntityId(req.params.entityId);
+  if (!entityId) {
+    res.status(400).json({ message: 'Invalid entityId format.' });
+    return;
+  }
+
+  const domain = entityId.split('.')[0];
+  if (!ACTIONABLE_DOMAINS.has(domain)) {
+    res
+      .status(400)
+      .json({ message: `Domain ${domain} does not support ${action} in current version.` });
+    return;
+  }
+
+  try {
+    if (config.mockMode) {
+      const device = withDeviceMetadata(setMockDeviceState(entityId, action));
+      if (!device) {
+        res.status(404).json({ message: 'Device not found in mock data.' });
+        return;
+      }
+      res.json({ ok: true, entityId, action, device, source: 'mock' });
+      return;
+    }
+
+    await callDeviceActionOnHomeAssistant(entityId, action);
+
+    let device = null;
+    try {
+      const state = await haClient.getState(entityId);
+      device = toDeviceDTO(state, { allowUnsupported: true });
+    } catch {
+      // Service call succeeded but latest state pull failed.
+    }
+
+    res.json({ ok: true, entityId, action, device, source: 'home_assistant' });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+function decodeEntityId(rawValue) {
+  const entityId = decodeURIComponent(rawValue || '');
+  return entityId.includes('.') ? entityId : '';
+}
+
+function callDeviceActionOnHomeAssistant(entityId, action) {
+  if (action === 'toggle') {
+    return haClient.callService('homeassistant', 'toggle', { entity_id: entityId });
+  }
+
+  if (action === 'turn_on' || action === 'turn_off') {
+    return haClient.callService('homeassistant', action, { entity_id: entityId });
+  }
+
+  const error = new Error('Unsupported action.');
+  error.code = 'INVALID_DEVICE_ACTION';
+  throw error;
+}
+
+function normalizeKeyword(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function applyDeviceFilters(items, query = {}) {
+  const keyword = normalizeKeyword(query.q);
+  const domainRaw = String(query.domain || '').trim();
+  const domainSet = new Set(
+    domainRaw
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+  const availableFilter = parseBooleanFilter(query.available);
+  const controllableFilter = parseBooleanFilter(query.controllable);
+
+  return items.filter((item) => {
+    if (keyword) {
+      const searchable = `${item.name} ${item.entityId}`.toLowerCase();
+      if (!searchable.includes(keyword)) {
+        return false;
+      }
+    }
+
+    if (domainSet.size > 0 && !domainSet.has(item.domain)) {
+      return false;
+    }
+
+    if (availableFilter !== null && Boolean(item.available) !== availableFilter) {
+      return false;
+    }
+
+    if (controllableFilter !== null && Boolean(item.controllable) !== controllableFilter) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function parseBooleanFilter(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const text = String(value).toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(text)) {
+    return true;
+  }
+  if (['0', 'false', 'no', 'off'].includes(text)) {
+    return false;
+  }
+
+  return null;
+}
+
+function applySceneKeywordFilter(items, keyword) {
+  if (!keyword) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const searchable = `${item.name} ${item.entityId}`.toLowerCase();
+    return searchable.includes(keyword);
+  });
+}
+
+function summarizeDevices(items) {
+  const summary = {
+    total: items.length,
+    online: 0,
+    offline: 0,
+    controllable: 0,
+    byDomain: {}
+  };
+
+  for (const item of items) {
+    const domain = item.domain || 'unknown';
+    summary.byDomain[domain] = (summary.byDomain[domain] || 0) + 1;
+
+    if (item.available) {
+      summary.online += 1;
+    } else {
+      summary.offline += 1;
+    }
+
+    if (item.controllable) {
+      summary.controllable += 1;
+    }
+  }
+
+  return summary;
+}
+
+function withDeviceMetadata(device) {
+  if (!device) {
+    return null;
+  }
+
+  return {
+    ...device,
+    controllable:
+      typeof device.controllable === 'boolean'
+        ? device.controllable
+        : ACTIONABLE_DOMAINS.has(device.domain)
+  };
+}
+
+function toDeviceDTO(state, options = {}) {
   const entityId = String(state.entity_id || '');
   const domain = entityId.split('.')[0];
+  const allowUnsupported = Boolean(options.allowUnsupported);
 
-  if (!SUPPORTED_DOMAINS.has(domain)) {
+  if (!allowUnsupported && !SUPPORTED_DOMAINS.has(domain)) {
     return null;
   }
 
@@ -223,6 +414,9 @@ function toDeviceDTO(state) {
     domain,
     state: String(state.state ?? 'unknown'),
     available: state.state !== 'unavailable',
+    controllable: ACTIONABLE_DOMAINS.has(domain),
+    unit: state.attributes?.unit_of_measurement || '',
+    deviceClass: state.attributes?.device_class || '',
     lastChanged: state.last_changed || '',
     lastUpdated: state.last_updated || ''
   };

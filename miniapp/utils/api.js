@@ -10,6 +10,21 @@ function getToken() {
   return app?.globalData?.sessionToken || '';
 }
 
+function buildQuery(params = {}) {
+  const pairs = [];
+
+  Object.keys(params).forEach((key) => {
+    const value = params[key];
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  });
+
+  return pairs.length > 0 ? `?${pairs.join('&')}` : '';
+}
+
 function request(path, method = 'GET', data) {
   const token = getToken();
   const headers = {
@@ -43,8 +58,8 @@ function request(path, method = 'GET', data) {
   });
 }
 
-function get(path) {
-  return request(path, 'GET');
+function get(path, params) {
+  return request(`${path}${buildQuery(params)}`, 'GET');
 }
 
 function post(path, data) {
@@ -72,8 +87,33 @@ function loginWithWechat() {
   });
 }
 
+function fetchDevices(params) {
+  return get('/api/devices', params);
+}
+
+function getDevice(entityId) {
+  return get(`/api/devices/${encodeURIComponent(entityId)}`);
+}
+
+function setDeviceState(entityId, action) {
+  return post(`/api/devices/${encodeURIComponent(entityId)}/state`, { action });
+}
+
+function fetchScenes(params) {
+  return get('/api/scenes', params);
+}
+
+function activateScene(entityId) {
+  return post(`/api/scenes/${encodeURIComponent(entityId)}/activate`, {});
+}
+
 module.exports = {
   get,
   post,
-  loginWithWechat
+  loginWithWechat,
+  fetchDevices,
+  getDevice,
+  setDeviceState,
+  fetchScenes,
+  activateScene
 };
