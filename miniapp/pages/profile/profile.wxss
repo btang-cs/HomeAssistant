@@ -1,0 +1,29 @@
+.token-block {
+  margin-top: 14rpx;
+  border-radius: 14rpx;
+  padding: 14rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e2e8f0;
+}
+
+.token-text {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.kv-row {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.kv-value {
+  font-size: 24rpx;
+  color: #0f172a;
+  text-align: right;
+  word-break: break-all;
+}

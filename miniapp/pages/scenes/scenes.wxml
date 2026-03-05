@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="hero">
+    <view class="hero-title">场景快捷面板</view>
+    <view class="hero-desc">一键触发家庭自动化场景。</view>
+    <view class="stat-row">
+      <view class="stat-pill">
+        <text class="stat-label">场景数量</text>
+        <text class="stat-value">{{sceneTotal}}</text>
+      </view>
+      <view class="stat-pill">
+        <text class="stat-label">刷新状态</text>
+        <text class="stat-value">{{loading ? '更新中' : '已就绪'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-head">
+      <view class="section-title">场景列表</view>
+      <button class="secondary-btn mini-btn" size="mini" bindtap="loadScenes" loading="{{loading}}">
+        刷新
+      </button>
+    </view>
+
+    <view class="error-banner" wx:if="{{error}}">{{error}}</view>
+    <view class="empty" wx:if="{{loading}}">正在同步场景，请稍候...</view>
+    <view class="empty" wx:if="{{!loading && isEmpty}}">暂无可执行场景</view>
+
+    <view class="list-item" wx:for="{{scenes}}" wx:key="entityId">
+      <view class="item-top">
+        <view class="item-name">{{item.name}}</view>
+        <view class="tag {{item.stateClass}}">{{item.stateLabel}}</view>
+      </view>
+
+      <view class="item-meta">{{item.entityId}}</view>
+
+      <view class="item-bottom">
+        <text class="subtle">点击按钮立即触发</text>
+        <button
+          class="primary-btn mini-btn"
+          size="mini"
+          data-entity-id="{{item.entityId}}"
+          bindtap="onActivateTap"
+        >
+          执行场景
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

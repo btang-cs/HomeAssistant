@@ -1,0 +1,57 @@
+<view class="container">
+  <view class="hero">
+    <view class="hero-title">家庭设备面板</view>
+    <view class="hero-desc">统一查看设备状态，支持常用设备一键切换。</view>
+    <view class="stat-row">
+      <view class="stat-pill">
+        <text class="stat-label">设备总数</text>
+        <text class="stat-value">{{deviceTotal}}</text>
+      </view>
+      <view class="stat-pill">
+        <text class="stat-label">在线设备</text>
+        <text class="stat-value">{{onlineTotal}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-head">
+      <view class="section-title">设备列表</view>
+      <button class="secondary-btn mini-btn" size="mini" bindtap="loadDevices" loading="{{loading}}">
+        刷新
+      </button>
+    </view>
+
+    <view class="error-banner" wx:if="{{error}}">{{error}}</view>
+    <view class="empty" wx:if="{{loading}}">正在加载设备，请稍候...</view>
+    <view class="empty" wx:if="{{!loading && isEmpty}}">暂无设备数据</view>
+
+    <view class="list-item" wx:for="{{devices}}" wx:key="entityId">
+      <view class="item-top">
+        <view class="item-name">{{item.name}}</view>
+        <view class="tag {{item.availabilityClass}}">{{item.availabilityText}}</view>
+      </view>
+
+      <view class="item-meta">{{item.domainLabel}} · {{item.entityId}}</view>
+
+      <view class="item-bottom">
+        <view class="state-block">
+          <text class="subtle">状态</text>
+          <text class="tag {{item.stateClass}}">{{item.stateLabel}}</text>
+        </view>
+
+        <button
+          wx:if="{{item.toggleable}}"
+          class="primary-btn mini-btn"
+          size="mini"
+          data-entity-id="{{item.entityId}}"
+          bindtap="onToggleTap"
+        >
+          切换
+        </button>
+
+        <text wx:else class="subtle">仅支持查看</text>
+      </view>
+    </view>
+  </view>
+</view>

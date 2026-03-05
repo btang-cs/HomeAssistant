@@ -1,0 +1,33 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/scenes/scenes",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationBarTitleText": "家庭助手",
+    "navigationBarBackgroundColor": "#f6fbff",
+    "navigationBarTextStyle": "black",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#2563eb",
+    "borderStyle": "white",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "设备"
+      },
+      {
+        "pagePath": "pages/scenes/scenes",
+        "text": "场景"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  }
+}

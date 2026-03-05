@@ -1,0 +1,72 @@
+<view class="container">
+  <view class="hero">
+    <view class="hero-title">连接与账户</view>
+    <view class="hero-desc">管理后端地址、登录状态与健康检测。</view>
+    <view class="stat-row">
+      <view class="stat-pill">
+        <text class="stat-label">登录状态</text>
+        <text class="stat-value">{{sessionToken ? '已登录' : '未登录'}}</text>
+      </view>
+      <view class="stat-pill">
+        <text class="stat-label">服务模式</text>
+        <text class="stat-value">{{modeLabel}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">后端地址</view>
+    <view class="subtle">默认本机开发地址，可替换为你的网关域名。</view>
+    <input
+      class="input-field"
+      type="text"
+      value="{{apiBaseUrl}}"
+      bindinput="onBaseUrlInput"
+      placeholder="请输入后端地址"
+    />
+    <view class="btn-row">
+      <button class="secondary-btn mini-btn" size="mini" bindtap="onSaveBaseUrl">保存地址</button>
+      <button class="secondary-btn mini-btn" size="mini" bindtap="onCheckHealth">检测连接</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">账户登录</view>
+    <view class="token-block" wx:if="{{sessionToken}}">
+      <view class="subtle">会话令牌</view>
+      <view class="token-text">{{maskedToken}}</view>
+    </view>
+    <view class="subtle" wx:else>当前未登录</view>
+
+    <view class="btn-row">
+      <button class="primary-btn mini-btn" size="mini" bindtap="onWechatLogin">微信登录</button>
+      <button class="danger-btn mini-btn" size="mini" bindtap="onLogout">退出登录</button>
+    </view>
+
+    <view class="error-banner" wx:if="{{error}}">{{error}}</view>
+  </view>
+
+  <view class="card" wx:if="{{health}}">
+    <view class="section-title">服务状态</view>
+
+    <view class="kv-row">
+      <text class="subtle">服务健康</text>
+      <text class="kv-value">{{health.okText}}</text>
+    </view>
+
+    <view class="kv-row">
+      <text class="subtle">运行模式</text>
+      <text class="kv-value">{{health.modeLabel}}</text>
+    </view>
+
+    <view class="kv-row">
+      <text class="subtle">HA 配置</text>
+      <text class="kv-value">{{health.haConfiguredText}}</text>
+    </view>
+
+    <view class="kv-row">
+      <text class="subtle">检测时间</text>
+      <text class="kv-value">{{health.timestamp}}</text>
+    </view>
+  </view>
+</view>
