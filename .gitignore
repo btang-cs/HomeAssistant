@@ -1,3 +1,23 @@
 backend/node_modules/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
 backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Local IDE / OS artifacts
 .DS_Store
+
+# WeChat private local config (should stay local only)
+project.private.config.json
+miniapp/project.private.config.json
+
+# Common secret / key material
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
