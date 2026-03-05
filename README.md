@@ -1,5 +1,7 @@
 # Home Assistant WeChat Mini Program MVP
 
+中文文档: [README.zh-CN.md](./README.zh-CN.md)
+
 This repository now contains a runnable MVP skeleton:
 
 - `backend`: Node.js API gateway for WeChat Mini Program, with Home Assistant proxy + mock mode.
