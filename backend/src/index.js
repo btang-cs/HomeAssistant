@@ -9,9 +9,11 @@ import { HomeAssistantClient } from './lib/haClient.js';
 import {
   activateMockScene,
   getMockDevice,
+  listMockAutomations,
   listMockDevices,
   listMockScenes,
-  setMockDeviceState
+  setMockDeviceState,
+  triggerMockAutomation
 } from './lib/mockData.js';
 import SessionStore from './lib/sessionStore.js';
 
@@ -59,6 +61,22 @@ app.post('/auth/wx-login', (req, res) => {
     sessionToken: token,
     expiresIn: config.sessionTtlSeconds,
     mode: config.mockMode ? 'mock' : 'proxy'
+  });
+});
+
+app.post('/auth/device-login', (req, res) => {
+  const provider = String(req.body?.provider || 'device').trim() || 'device';
+  const platform = String(req.body?.platform || 'unknown').trim() || 'unknown';
+  const deviceName = String(req.body?.deviceName || '').trim();
+  const token = randomUUID();
+
+  sessions.create(token, { provider, platform, deviceName });
+
+  res.json({
+    sessionToken: token,
+    expiresIn: config.sessionTtlSeconds,
+    mode: config.mockMode ? 'mock' : 'proxy',
+    authType: 'device'
   });
 });
 
@@ -221,6 +239,77 @@ app.post('/api/scenes/:entityId/activate', async (req, res) => {
   }
 });
 
+app.get('/api/automations', async (req, res) => {
+  const keyword = normalizeKeyword(req.query?.q);
+  const kind = String(req.query?.kind || '').trim().toLowerCase();
+
+  try {
+    if (config.mockMode) {
+      const items = applyAutomationFilters(listMockAutomations(), keyword, kind);
+      res.json({ items, total: items.length, source: 'mock' });
+      return;
+    }
+
+    const states = await haClient.getStates();
+    const items = applyAutomationFilters(
+      states
+        .filter((state) => {
+          const entityId = String(state.entity_id || '');
+          return entityId.startsWith('automation.') || entityId.startsWith('script.');
+        })
+        .map((state) => toAutomationDTO(state))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      keyword,
+      kind
+    );
+
+    res.json({ items, total: items.length, source: 'home_assistant' });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+app.post('/api/automations/:entityId/run', async (req, res) => {
+  const entityId = decodeEntityId(req.params.entityId);
+  const kind = entityId.split('.')[0];
+
+  if (!entityId || !['automation', 'script'].includes(kind)) {
+    res.status(400).json({ message: 'Only automation.* or script.* entityId can be run.' });
+    return;
+  }
+
+  try {
+    if (config.mockMode) {
+      const item = triggerMockAutomation(entityId);
+      if (!item) {
+        res.status(404).json({ message: 'Automation not found in mock data.' });
+        return;
+      }
+
+      res.json({ ok: true, entityId, item, source: 'mock' });
+      return;
+    }
+
+    if (kind === 'automation') {
+      await haClient.callService('automation', 'trigger', { entity_id: entityId });
+    } else {
+      await haClient.callService('script', 'turn_on', { entity_id: entityId });
+    }
+
+    let item = null;
+    try {
+      const state = await haClient.getState(entityId);
+      item = toAutomationDTO(state);
+    } catch {
+      // Service call succeeded but latest state pull failed.
+    }
+
+    res.json({ ok: true, entityId, item, source: 'home_assistant' });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
 app.use((error, _req, res, _next) => {
   sendError(res, error);
 });
@@ -358,6 +447,21 @@ function applySceneKeywordFilter(items, keyword) {
   });
 }
 
+function applyAutomationFilters(items, keyword, kind) {
+  return items.filter((item) => {
+    if (kind && item.kind !== kind) {
+      return false;
+    }
+
+    if (!keyword) {
+      return true;
+    }
+
+    const searchable = `${item.name} ${item.entityId}`.toLowerCase();
+    return searchable.includes(keyword);
+  });
+}
+
 function summarizeDevices(items) {
   const summary = {
     total: items.length,
@@ -419,6 +523,19 @@ function toDeviceDTO(state, options = {}) {
     deviceClass: state.attributes?.device_class || '',
     lastChanged: state.last_changed || '',
     lastUpdated: state.last_updated || ''
+  };
+}
+
+function toAutomationDTO(state) {
+  const entityId = String(state.entity_id || '');
+  const kind = entityId.split('.')[0];
+
+  return {
+    entityId,
+    name: state.attributes?.friendly_name || entityId,
+    kind,
+    state: String(state.state ?? 'unknown'),
+    lastTriggeredAt: ''
   };
 }
 

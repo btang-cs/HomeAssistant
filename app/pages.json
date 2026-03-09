@@ -1,0 +1,61 @@
+{
+  "globalStyle": {
+    "navigationBarTitleText": "家庭助手",
+    "navigationBarBackgroundColor": "#f7fbff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#eef6ff"
+  },
+  "pages": [
+    {
+      "path": "pages/devices/index",
+      "style": {
+        "navigationBarTitleText": "设备",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/scenes/index",
+      "style": {
+        "navigationBarTitleText": "场景",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/automations/index",
+      "style": {
+        "navigationBarTitleText": "自动化",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#1459d9",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/devices/index",
+        "text": "设备"
+      },
+      {
+        "pagePath": "pages/scenes/index",
+        "text": "场景"
+      },
+      {
+        "pagePath": "pages/automations/index",
+        "text": "自动化"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  }
+}

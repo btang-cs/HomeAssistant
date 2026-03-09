@@ -62,6 +62,39 @@ const mockScenes = [
   }
 ];
 
+const mockAutomations = new Map([
+  [
+    'automation.night_security',
+    {
+      entityId: 'automation.night_security',
+      name: 'Night Security',
+      kind: 'automation',
+      state: 'on',
+      lastTriggeredAt: ''
+    }
+  ],
+  [
+    'automation.energy_saver',
+    {
+      entityId: 'automation.energy_saver',
+      name: 'Energy Saver',
+      kind: 'automation',
+      state: 'off',
+      lastTriggeredAt: ''
+    }
+  ],
+  [
+    'script.all_lights_off',
+    {
+      entityId: 'script.all_lights_off',
+      name: 'All Lights Off',
+      kind: 'script',
+      state: 'off',
+      lastTriggeredAt: ''
+    }
+  ]
+]);
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -114,4 +147,24 @@ export function listMockScenes() {
 
 export function activateMockScene(entityId) {
   return Boolean(mockScenes.find((scene) => scene.entityId === entityId));
+}
+
+export function listMockAutomations() {
+  return Array.from(mockAutomations.values()).map((item) => clone(item));
+}
+
+export function triggerMockAutomation(entityId) {
+  const automation = mockAutomations.get(entityId);
+  if (!automation) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  automation.lastTriggeredAt = now;
+
+  if (automation.kind === 'script') {
+    automation.state = 'on';
+  }
+
+  return clone(automation);
 }

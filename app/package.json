@@ -1,0 +1,6 @@
+{
+  "name": "ha-cross-platform-app",
+  "private": true,
+  "type": "module",
+  "description": "Cross-platform Home Assistant client built with uni-app."
+}

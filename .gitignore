@@ -14,6 +14,9 @@ backend/.env.*
 # WeChat private local config (should stay local only)
 project.private.config.json
 miniapp/project.private.config.json
+app/.hbuilderx/
+app/unpackage/
+app/dist/
 
 # Common secret / key material
 *.pem
